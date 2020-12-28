@@ -1,4 +1,4 @@
-import {Id} from '../schema';
+import {Id, IReference} from '../schema';
 
 export abstract class Resource<TType extends string> {
   public id: Id;
@@ -10,3 +10,4 @@ export abstract class Resource<TType extends string> {
 }
 
 export type AnyResource = Resource<string>;
+export type ReferenceTo<TModel extends AnyResource> = TModel extends Resource<infer TType> ? IReference<TType> : never;

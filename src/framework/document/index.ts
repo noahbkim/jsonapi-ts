@@ -58,12 +58,13 @@ export class OneDocument<TModel extends AnyModel> extends Document {
   public static wrap<
     TType extends IType,
     TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType> = TIReadResource,
+    TIWriteResource extends AnyIResource<TType>,
+    TModel extends Model<TType, TIReadResource, TIWriteResource>
   >(
     data: IDocument<TIReadResource>,
-    model: IModel<TType, TIReadResource, TIWriteResource>,
-  ): OneDocument<Model<TType, TIReadResource, TIWriteResource>> {
-    const document = new OneDocument<Model<TType, TIReadResource, TIWriteResource>>();
+    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+  ): OneDocument<TModel> {
+    const document = new OneDocument<TModel>();
     super.bind(document, data);
     if (data.data !== undefined) {
       document.data = model.wrap(data.data);
@@ -90,12 +91,13 @@ export class ManyDocument<TModel extends AnyModel> extends Document {
   public static wrap<
     TType extends IType,
     TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType> = TIReadResource,
+    TIWriteResource extends AnyIResource<TType>,
+    TModel extends Model<TType, TIReadResource, TIWriteResource>
   >(
     data: IDocument<Array<TIReadResource>>,
-    model: IModel<TType, TIReadResource, TIWriteResource>,
-  ): ManyDocument<Model<TType, TIReadResource, TIWriteResource>> {
-    const document = new ManyDocument<Model<TType, TIReadResource, TIWriteResource>>();
+    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+  ): ManyDocument<TModel> {
+    const document = new ManyDocument<TModel>();
     super.bind(document, data);
     document.data = data.data?.map(model.wrap);
     return document;

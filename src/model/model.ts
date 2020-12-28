@@ -5,9 +5,10 @@ import {ModelRegistry} from './registry';
 export interface IModel<
   TType extends IType,
   TIReadResource extends AnyIResource<TType>,
-  TIWriteResource extends AnyIResource<TType> = TIReadResource,
+  TIWriteResource extends AnyIResource<TType>,
+  TModel extends Model<TType, TIReadResource, TIWriteResource>,
 > {
-  wrap(resource: TIReadResource): Model<TType, TIReadResource, TIWriteResource>,
+  wrap(resource: TIReadResource): TModel,
   type: TType;
 }
 
@@ -26,3 +27,12 @@ export abstract class Model<
 }
 
 export type AnyModel<TType extends IType = IType> = Model<TType, AnyIResource<TType>, AnyIResource<TType>>;
+export type TypeFromModel<TModel extends AnyModel> = TModel['type'];
+
+export type IReadResourceFromModel<
+  TModel extends AnyModel
+> = TModel extends Model<TModel['type'], infer IR, any> ? IR : never;
+
+export type IWriteResourceFromModel<
+  TModel extends AnyModel
+> = TModel extends Model<TModel['type'], any, infer IW> ? IW : never;

@@ -1,4 +1,4 @@
-import {Model, ManyRelationship, IReadResourceFromModel} from '../src/model';
+import {Model, ManyRelationship, IReadResourceFromModel, AnyModel} from '../src/model';
 import {IAttributes, IRelationship, IRelationships, IResource} from '../src/schema';
 
 type ResourceType = 'users';

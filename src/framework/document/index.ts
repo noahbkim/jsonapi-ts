@@ -1,6 +1,6 @@
 import {DocumentPagination} from './pagination';
-import {AnyIResource, IDocument, IError, IJsonApi, IMeta, IRequiredLinks, IType} from '../../schema';
-import {Model, AnyModel, IWriteResourceFromModel, IModel} from '../../model';
+import {AnyIResource, IDocument, IError, IJsonApi, IMeta, IRequiredLinks} from '../../schema';
+import {Model, AnyModel, IWriteResourceFromModel, IModel, IReadResourceFromModel} from '../../model';
 
 export * from './pagination';
 
@@ -55,14 +55,8 @@ export class OneDocument<TModel extends AnyModel> extends Document {
     this.data = data;
   }
 
-  public static wrap<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
-    data: IDocument<TIReadResource>,
+  public static wrap<TModel extends AnyModel, TIModel extends IModel<TModel>>(
+    data: IDocument<IReadResourceFromModel<TModel>>,
     model: TIModel,
   ): OneDocument<TModel> {
     const document = new OneDocument<TModel>();
@@ -89,14 +83,8 @@ export class ManyDocument<TModel extends AnyModel> extends Document {
     this.data = data;
   }
 
-  public static wrap<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
-    data: IDocument<Array<TIReadResource>>,
+  public static wrap<TModel extends AnyModel, TIModel extends IModel<TModel>>(
+    data: IDocument<Array<IReadResourceFromModel<TModel>>>,
     model: TIModel,
   ): ManyDocument<TModel> {
     const document = new ManyDocument<TModel>();

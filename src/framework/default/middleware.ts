@@ -1,5 +1,5 @@
-import {DocumentHttpRequest} from './http';
+import {DocumentRequest} from './http';
 
 export interface IJsonApiMiddleware {
-  apply(request: DocumentHttpRequest): void;
+  apply(request: DocumentRequest<any, any>): void;
 }

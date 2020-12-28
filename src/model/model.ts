@@ -2,14 +2,9 @@ import {Resource, Reference} from '../resource';
 import {AnyIResource, IType} from '../schema';
 import {ModelRegistry} from './registry';
 
-export interface IModel<
-  TType extends IType,
-  TIReadResource extends AnyIResource<TType>,
-  TIWriteResource extends AnyIResource<TType>,
-  TModel extends Model<TType, TIReadResource, TIWriteResource>,
-> {
-  wrap(resource: TIReadResource): TModel,
-  type: TType;
+export interface IModel<TModel extends AnyModel> {
+  wrap(resource: IReadResourceFromModel<TModel>): TModel,
+  type: TypeFromModel<TModel>;
 }
 
 export abstract class Model<

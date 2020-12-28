@@ -1,23 +1,15 @@
 import {AnyIResource, IType} from '../schema';
-import type {AnyModel, IModel} from './model';
+import type {AnyModel, IModel, TypeFromModel} from './model';
 
 export class ModelRegistry {
-  private registered: Map<IType, IModel<IType, AnyIResource, AnyIResource>> = new Map();
+  private registered: Map<IType, IModel<AnyModel>> = new Map();
 
-  public put<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType> = TIReadResource,
-  >(model: IModel<TType, TIReadResource, TIWriteResource>) {
+  public put(model: IModel<AnyModel>) {
     this.registered.set(model.type, model);
   }
 
-  public get<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType> = TIReadResource,
-  >(type: IType): IModel<TType, TIReadResource, TIWriteResource> {
-    return this.registered.get(type)! as IModel<TType, TIReadResource, TIWriteResource>;
+  public get<TModel extends AnyModel>(type: TypeFromModel<TModel>): IModel<TModel> {
+    return this.registered.get(type)! as unknown as IModel<TModel>;
   }
 
   public wrap(resource: AnyIResource): AnyModel {

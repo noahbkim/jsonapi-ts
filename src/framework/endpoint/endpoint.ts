@@ -1,6 +1,5 @@
 import {JsonApi} from '../api';
-import {AnyIResource, IType} from '../../schema';
-import {IModel, Model} from '../../model';
+import {AnyModel, IModel} from '../../model';
 import {PartialResourceQuery} from './query';
 import {ManyDocument, OneDocument} from '../document';
 import {IncrementalPromise} from '../library/promise';
@@ -8,11 +7,8 @@ import {ReferenceTo} from '../../resource';
 import {join} from '../library/url';
 
 export class ReadOnlyResourceEndpoint<
-  TType extends IType,
-  TIReadResource extends AnyIResource<TType>,
-  TIWriteResource extends AnyIResource<TType>,
-  TModel extends Model<TType, TIReadResource, TIWriteResource>,
-  TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
+  TModel extends AnyModel,
+  TIModel extends IModel<TModel>,
 > {
   protected api: JsonApi;
   protected model: TIModel;
@@ -24,17 +20,11 @@ export class ReadOnlyResourceEndpoint<
     this.url = url;
   }
 
-  public nested<
-    TNType extends IType,
-    TNIReadResource extends AnyIResource<TNType>,
-    TNIWriteResource extends AnyIResource<TNType>,
-    TNModel extends Model<TNType, TNIReadResource, TNIWriteResource>,
-    TNIModel extends IModel<TNType, TNIReadResource, TNIWriteResource, TNModel>,
-  >(
+  public nested<TNModel extends AnyModel, TNIModel extends IModel<TNModel>>(
     resource: TModel,
     path: string,
     model: TNIModel,
-  ): ReadOnlyResourceEndpoint<TNType, TNIReadResource, TNIWriteResource, TNModel, TNIModel> {
+  ): ReadOnlyResourceEndpoint<TNModel, TNIModel> {
     return new ReadOnlyResourceEndpoint(this.api, model, join(this.url, resource.id, path));
   }
 
@@ -52,12 +42,9 @@ export class ReadOnlyResourceEndpoint<
 }
 
 export class ResourceEndpoint<
-  TType extends IType,
-  TIReadResource extends AnyIResource<TType>,
-  TIWriteResource extends AnyIResource<TType>,
-  TModel extends Model<TType, TIReadResource, TIWriteResource>,
-  TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-> extends ReadOnlyResourceEndpoint<TType, TIReadResource, TIWriteResource, TModel, TIModel> {
+  TModel extends AnyModel,
+  TIModel extends IModel<TModel>,
+> extends ReadOnlyResourceEndpoint<TModel, TIModel> {
   public create(resource: TModel): Promise<OneDocument<TModel>> {
     return this.api.create(this.url, this.model, resource);
   }

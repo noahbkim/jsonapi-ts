@@ -1,6 +1,6 @@
-import {AnyIResource, IDocument, IType} from '../schema';
+import {IDocument} from '../schema';
 import {status} from './default';
-import {IModel, Model} from '../model';
+import {AnyModel, IModel, IReadResourceFromModel, IWriteResourceFromModel} from '../model';
 import {PartialResourceQuery, query} from './endpoint';
 import {ManyDocument, OneDocument, pages, pagination, PartialDocumentPagination} from './document';
 import {Callback, IncrementalPromise, IncrementalPromiseCallback, OptionalCallback} from './library/promise';
@@ -27,19 +27,13 @@ export class JsonApi {
    * @param p the pagination specifier to request.
    * @return a promise for a list of resource models and consequent pagination.
    */
-  public getMany<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public getMany<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     q: PartialResourceQuery<TModel>,
     p: PartialDocumentPagination = pagination(),
   ): Promise<ManyDocument<TModel>> {
-    type TData = Array<TIReadResource>;
+    type TData = Array<IReadResourceFromModel<TModel>>;
     return this.broker
       .request<TData>(Method.GET, url)
       .parameters(q.typed(model.type).with(p).parameters)
@@ -64,13 +58,7 @@ export class JsonApi {
    * @param q the resource query to send as GET parameters.
    * @return a promise for a list of resource models.
    */
-  public getAll<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public getAll<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     q: PartialResourceQuery<TModel>,
@@ -103,13 +91,7 @@ export class JsonApi {
    * @param q the resource query to send as GET parameters.
    * @return an incremental promise for a list of resource models.
    */
-  public getAllIncremental<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public getAllIncremental<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     q: PartialResourceQuery<TModel>,
@@ -140,18 +122,12 @@ export class JsonApi {
    * @param q the resource query to send as GET parameters.
    * @return a single resource.
    */
-  public getOne<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public getOne<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     q: PartialResourceQuery<TModel> = query(),
   ): Promise<OneDocument<TModel>> {
-    type TData = TIReadResource;
+    type TData = IReadResourceFromModel<TModel>;
     return this.broker
       .request<TData>(Method.GET, url)
       .parameters(q.typed(model.type).parameters)
@@ -172,13 +148,7 @@ export class JsonApi {
    * @param p the pagination specifier to request.
    * @return a specialized callback for the promise.
    */
-  private getRestIncremental<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  private getRestIncremental<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     q: PartialResourceQuery<TModel>,
@@ -199,40 +169,34 @@ export class JsonApi {
     };
   }
 
-  public create<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public create<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     resource: TModel,
   ): Promise<OneDocument<TModel>> {
+    type TReadData = IReadResourceFromModel<TModel>;
+    type TWriteData = IWriteResourceFromModel<TModel>;
+    const data = resource.unwrap() as TWriteData;
     return this.broker
-      .request<TIReadResource, TIWriteResource>(Method.POST, url)
-      .send({data: resource.unwrap()})
+      .request<TReadData, TWriteData>(Method.POST, url)
+      .send({data})
       .then(status(201))
-      .then((data: IDocument<TIReadResource>) => OneDocument.wrap(data, model));
+      .then((data: IDocument<TReadData>) => OneDocument.wrap(data, model));
   }
 
-  public update<
-    TType extends IType,
-    TIReadResource extends AnyIResource<TType>,
-    TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>,
-    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
-  >(
+  public update<TModel extends AnyModel, TIModel extends IModel<TModel>>(
     url: string,
     model: TIModel,
     resource: TModel,
   ): Promise<OneDocument<TModel>> {
+    type TReadData = IReadResourceFromModel<TModel>;
+    type TWriteData = IWriteResourceFromModel<TModel>;
+    const data = resource.unwrap() as TWriteData;
     return this.broker
-      .request<TIReadResource, TIWriteResource>(Method.PATCH, url)
-      .send({data: resource.unwrap()})
+      .request<TReadData, TWriteData>(Method.PATCH, url)
+      .send({data})
       .then(status(201))
-      .then((data: IDocument<TIReadResource>) => OneDocument.wrap(data, model));
+      .then((data: IDocument<TReadData>) => OneDocument.wrap(data, model));
   }
 
   public delete(

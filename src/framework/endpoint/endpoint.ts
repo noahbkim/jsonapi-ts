@@ -12,15 +12,30 @@ export class ReadOnlyResourceEndpoint<
   TIReadResource extends AnyIResource<TType>,
   TIWriteResource extends AnyIResource<TType>,
   TModel extends Model<TType, TIReadResource, TIWriteResource>,
+  TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
 > {
   protected api: JsonApi;
-  protected model: IModel<TType, TIReadResource, TIWriteResource, TModel>;
+  protected model: TIModel;
   protected url: string;
 
-  public constructor(api: JsonApi, model: IModel<TType, TIReadResource, TIWriteResource, TModel>, url: string) {
+  public constructor(api: JsonApi, model: TIModel, url: string) {
     this.api = api;
     this.model = model;
     this.url = url;
+  }
+
+  public nested<
+    TNType extends IType,
+    TNIReadResource extends AnyIResource<TNType>,
+    TNIWriteResource extends AnyIResource<TNType>,
+    TNModel extends Model<TNType, TNIReadResource, TNIWriteResource>,
+    TNIModel extends IModel<TNType, TNIReadResource, TNIWriteResource, TNModel>,
+  >(
+    resource: TModel,
+    path: string,
+    model: TNIModel,
+  ): ReadOnlyResourceEndpoint<TNType, TNIReadResource, TNIWriteResource, TNModel, TNIModel> {
+    return new ReadOnlyResourceEndpoint(this.api, model, join(this.url, resource.id, path));
   }
 
   public getAll(q: PartialResourceQuery<TModel>): Promise<ManyDocument<TModel>> {
@@ -41,7 +56,8 @@ export class ResourceEndpoint<
   TIReadResource extends AnyIResource<TType>,
   TIWriteResource extends AnyIResource<TType>,
   TModel extends Model<TType, TIReadResource, TIWriteResource>,
-> extends ReadOnlyResourceEndpoint<TType, TIReadResource, TIWriteResource, TModel> {
+  TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
+> extends ReadOnlyResourceEndpoint<TType, TIReadResource, TIWriteResource, TModel, TIModel> {
   public create(resource: TModel): Promise<OneDocument<TModel>> {
     return this.api.create(this.url, this.model, resource);
   }

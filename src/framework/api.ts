@@ -1,7 +1,7 @@
 import {AnyIResource, IDocument, IType} from '../schema';
 import {status} from './default';
 import {IModel, Model} from '../model';
-import {PartialResourceQuery, query} from './endpoint/query';
+import {PartialResourceQuery, query} from './endpoint';
 import {ManyDocument, OneDocument, pages, pagination, PartialDocumentPagination} from './document';
 import {Callback, IncrementalPromise, IncrementalPromiseCallback, OptionalCallback} from './library/promise';
 import {DocumentBroker} from './default/api';
@@ -32,9 +32,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     q: PartialResourceQuery<TModel>,
     p: PartialDocumentPagination = pagination(),
   ): Promise<ManyDocument<TModel>> {
@@ -68,9 +69,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     q: PartialResourceQuery<TModel>,
   ): Promise<ManyDocument<TModel>> {
     return this.getMany(url, model, q).then((document: ManyDocument<TModel>) => {
@@ -106,9 +108,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     q: PartialResourceQuery<TModel>,
   ): IncrementalPromise<ManyDocument<TModel>, void> {
     return new IncrementalPromise((step: Callback<ManyDocument<TModel>>, resolve: Callback<void>) => {
@@ -142,9 +145,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     q: PartialResourceQuery<TModel> = query(),
   ): Promise<OneDocument<TModel>> {
     type TData = TIReadResource;
@@ -173,9 +177,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     q: PartialResourceQuery<TModel>,
     p: PartialDocumentPagination,
   ): IncrementalPromiseCallback<ManyDocument<TModel>, void> {
@@ -199,9 +204,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     resource: TModel,
   ): Promise<OneDocument<TModel>> {
     return this.broker
@@ -216,9 +222,10 @@ export class JsonApi {
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
     TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     url: string,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
     resource: TModel,
   ): Promise<OneDocument<TModel>> {
     return this.broker

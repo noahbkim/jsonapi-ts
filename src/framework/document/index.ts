@@ -59,10 +59,11 @@ export class OneDocument<TModel extends AnyModel> extends Document {
     TType extends IType,
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>
+    TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     data: IDocument<TIReadResource>,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
   ): OneDocument<TModel> {
     const document = new OneDocument<TModel>();
     super.bind(document, data);
@@ -92,10 +93,11 @@ export class ManyDocument<TModel extends AnyModel> extends Document {
     TType extends IType,
     TIReadResource extends AnyIResource<TType>,
     TIWriteResource extends AnyIResource<TType>,
-    TModel extends Model<TType, TIReadResource, TIWriteResource>
+    TModel extends Model<TType, TIReadResource, TIWriteResource>,
+    TIModel extends IModel<TType, TIReadResource, TIWriteResource, TModel>,
   >(
     data: IDocument<Array<TIReadResource>>,
-    model: IModel<TType, TIReadResource, TIWriteResource, TModel>,
+    model: TIModel,
   ): ManyDocument<TModel> {
     const document = new ManyDocument<TModel>();
     super.bind(document, data);

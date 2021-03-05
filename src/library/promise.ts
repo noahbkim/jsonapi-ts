@@ -1,5 +1,5 @@
-export type Callback<T> = (v: T) => void;
-export type OptionalCallback<T> = (v?: T) => void;
+type Callback<T> = (v: T) => void;
+type OptionalCallback<T> = (v?: T) => void;
 
 export type IncrementalPromiseCallback<TEach, TDone> = (
   step: Callback<TEach>,

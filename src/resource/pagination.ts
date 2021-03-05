@@ -1,5 +1,5 @@
-import {IPagination} from '../../schema';
-import {ParameterWrapper} from '../library/parameters';
+import {IPagination} from '../schema';
+import {ParameterWrapper} from './parameters';
 
 /** A partial pagination object, good for initial queries.
  *
@@ -7,7 +7,7 @@ import {ParameterWrapper} from '../library/parameters';
  * JSON API page without knowing the full details of the number of resources
  * or pagination schema.
  */
-export class PartialDocumentPagination extends ParameterWrapper {
+export class PartialResourcePagination extends ParameterWrapper {
   public readonly offset: number;
   public readonly limit?: number;
 
@@ -42,7 +42,7 @@ export class PartialDocumentPagination extends ParameterWrapper {
    * @return self
    */
   public page(field: string, value: string | number): this {
-    this.set(PartialDocumentPagination.formatPageField(field), value.toString());
+    this.set(PartialResourcePagination.formatPageField(field), value.toString());
     return this;
   }
 }
@@ -52,7 +52,7 @@ export class PartialDocumentPagination extends ParameterWrapper {
  * Requires a limit and count of total resources available. Returned from
  * actual resource request and response.
  */
-export class DocumentPagination extends PartialDocumentPagination {
+export class ResourcePagination extends PartialResourcePagination {
   public readonly limit: number;
   public readonly count: number;
 
@@ -72,12 +72,12 @@ export class DocumentPagination extends PartialDocumentPagination {
    *
    * @param meta the meta object of the response.
    */
-  public static fromMeta(meta: any): DocumentPagination | undefined {
+  public static fromMeta(meta: any): ResourcePagination | undefined {
     if (typeof meta !== 'object' || !meta.hasOwnProperty('pagination') || typeof meta['pagination'] !== 'object') {
       return undefined;
     }
     const p = meta['pagination'] as IPagination;
-    return new DocumentPagination(p.offset, p.limit, p.count);
+    return new ResourcePagination(p.offset, p.limit, p.count);
   }
 
   /** Get the next pagination from the current.
@@ -88,11 +88,11 @@ export class DocumentPagination extends PartialDocumentPagination {
    * @param by the amount to increment the offset by.
    * @param limit override the limit of the current pagination.
    */
-  public advance(by: number, limit?: number): PartialDocumentPagination | undefined {
+  public advance(by: number, limit?: number): PartialResourcePagination | undefined {
     if (this.offset + by === this.count) {
       return undefined;
     } else {
-      return new DocumentPagination(this.offset + by, limit || this.limit, this.count);
+      return new ResourcePagination(this.offset + by, limit || this.limit, this.count);
     }
   }
 }
@@ -105,8 +105,8 @@ export class DocumentPagination extends PartialDocumentPagination {
  * @param offset the offset of the first resource requested.
  * @param limit the maximum number of resources to receive.
  */
-export function pagination(offset = 0, limit?: number): PartialDocumentPagination {
-  return new PartialDocumentPagination(offset, limit);
+export function pagination(offset = 0, limit?: number): PartialResourcePagination {
+  return new PartialResourcePagination(offset, limit);
 }
 
 /** List all pages given an initial.
@@ -117,7 +117,7 @@ export function pagination(offset = 0, limit?: number): PartialDocumentPaginatio
  * @param p the initial page requested.
  * @param retrieved how many have been retrieved.
  */
-export function pages(p: DocumentPagination, retrieved = 0): Array<PartialDocumentPagination> {
+export function pages(p: ResourcePagination, retrieved = 0): Array<PartialResourcePagination> {
   const ps = [];
   for (let i = 0; i < Math.ceil((p.count - retrieved) / p.limit); i++) {
     ps.push(pagination(p.offset + retrieved + i * p.limit));

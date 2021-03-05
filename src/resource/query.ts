@@ -1,12 +1,15 @@
-import {ParameterWrapper} from '../library/parameters';
-import {AnyModel} from '../../model';
+import {AnyResource, IFromResource} from '../core/resource';
+import {ParameterWrapper} from './parameters';
 
 /** Parameter wrapper of resource query fields without type
  *
  * This parameter wrapper provides convenience methods for setting GET
  * parameters on a resource request. It does not contain a type.
  */
-export class PartialResourceQuery<TModel extends AnyModel> extends ParameterWrapper {
+export class PartialResourceQuery<
+  TResource extends AnyResource,
+  TIResource extends IFromResource<TResource> = IFromResource<TResource>
+> extends ParameterWrapper {
   /** Construct a partial resource query.
    *
    * @param parameters an existing map of parameters to start with.
@@ -91,8 +94,8 @@ export class PartialResourceQuery<TModel extends AnyModel> extends ParameterWrap
    * @param type the type of resource to get.
    * @return a complete resource query.
    */
-  public typed(type: string): ResourceQuery<TModel> {
-    return new ResourceQuery<TModel>(type, this.parameters);
+  public typed(type: string): ResourceQuery<TResource, TIResource> {
+    return new ResourceQuery<TResource, TIResource>(type, this.parameters);
   }
 }
 
@@ -101,7 +104,10 @@ export class PartialResourceQuery<TModel extends AnyModel> extends ParameterWrap
  * Contains both a type and parameters to searchTerm, sort, filter, etc.
  * by on the server side.
  */
-export class ResourceQuery<TModel extends AnyModel> extends PartialResourceQuery<TModel> {
+export class ResourceQuery<
+  TResource extends AnyResource,
+  TIResource extends IFromResource<TResource> = IFromResource<TResource>
+> extends PartialResourceQuery<TResource, TIResource> {
   public readonly type: string;
 
   /** Initialize a new resource query with a concrete type.
@@ -127,8 +133,14 @@ export class ResourceQuery<TModel extends AnyModel> extends PartialResourceQuery
   }
 }
 
-export function query<TModel extends AnyModel>(): PartialResourceQuery<TModel>;
-export function query<TModel extends AnyModel>(type: string): ResourceQuery<TModel>;
+export function query<
+  TResource extends AnyResource,
+  TIResource extends IFromResource<TResource> = IFromResource<TResource>
+>(): PartialResourceQuery<TResource, TIResource>;
+export function query<
+  TResource extends AnyResource,
+  TIResource extends IFromResource<TResource> = IFromResource<TResource>
+>(type: string): ResourceQuery<TResource, TIResource>;
 
 /** Shorthand for creating a new resource query.
  *
@@ -138,7 +150,10 @@ export function query<TModel extends AnyModel>(type: string): ResourceQuery<TMod
  * @param type the JSON API resource type.
  * @return either a partial or full resource query based on type.
  */
-export function query<TModel extends AnyModel>(type?: string): PartialResourceQuery<TModel> | ResourceQuery<TModel> {
+export function query<
+  TResource extends AnyResource,
+  TIResource extends IFromResource<TResource> = IFromResource<TResource>
+>(type?: string): PartialResourceQuery<TResource, TIResource> | ResourceQuery<TResource, TIResource> {
   if (type !== undefined) {
     return new ResourceQuery(type);
   } else {

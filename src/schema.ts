@@ -1,7 +1,6 @@
 export interface ILinks {}
 
 export type Id = string;
-export type IType = string;
 
 export interface IRequiredLinks extends ILinks {
   self?: string;
@@ -16,28 +15,30 @@ export interface IRelationships {
   [key: string]: IRelationship<any> | undefined;
 }
 
-export interface IReference<TType extends IType> {
+export interface IReference<TType extends string> {
   id: Id;
   type: TType;
 }
 
 export type IReferenceTo<TIResource extends AnyIResource> = IReference<TIResource['type']>;
 
-export type IData = IReference<IType> | Array<IReference<IType>>;
+export type IData = IReference<string> | Array<IReference<string>>;
 
 export interface IResource<
-  TType extends IType,
+  TType extends string,
   TAttributes extends IAttributes | undefined = undefined,
   TRelationships extends IRelationships | undefined = undefined
 > extends IReference<TType> {
-  id: Id,
-  type: TType,
   attributes: TAttributes;
   relationships: TRelationships;
 }
 
-export type AnyIResource<TType extends IType = IType> = IResource<TType, IAttributes | undefined, IRelationships | undefined>;
-export type TypeFromIResource<TIResource extends AnyIResource> = TIResource extends IResource<infer T> ? T : never;
+export type AnyIResourceOfType<TType extends string> = IResource<
+  TType,
+  IAttributes | undefined,
+  IRelationships | undefined
+>;
+export type AnyIResource = IResource<string, IAttributes | undefined, IRelationships | undefined>;
 
 export interface ISource {
   pointer?: string;
@@ -67,7 +68,7 @@ export interface IRelationship<TData extends IData> {
   meta?: IMeta;
 }
 
-export interface IOptionalRelationship<TData extends IReference<IType>> {
+export interface IOptionalRelationship<TData extends IReference<string>> {
   data: TData | null;
   links?: IRequiredLinks;
   meta?: IMeta;

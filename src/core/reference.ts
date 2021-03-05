@@ -1,6 +1,5 @@
-import {Id, IReference} from '../schema';
-import {AnyResource} from './resource';
-
+import {AnyIResource, Id, IReference} from '../schema';
+import {AnyResource, Resource} from './resource';
 
 /** A reference to a resource.
  *
@@ -16,7 +15,7 @@ import {AnyResource} from './resource';
  * @template TResource the resource class this reference points to.
  */
 export class Reference<TResource extends AnyResource> {
-  public readonly id: Id;
+  public readonly id: string;
   public readonly type: TResource['type'];
   public resource: TResource | null = null;
 
@@ -26,7 +25,7 @@ export class Reference<TResource extends AnyResource> {
    * @param type the schema type of the referenced resource.
    * @param resource a local wrapped resource.
    */
-  public constructor(id: Id, type: TResource['type'], resource: TResource | null = null) {
+  public constructor(id: string, type: string, resource: TResource | null = null) {
     this.id = id;
     this.type = type;
     this.resource = resource;
@@ -52,15 +51,10 @@ export class Reference<TResource extends AnyResource> {
     resource?: TResource,
   ): Reference<TResource>;
   public static wrap<TResource extends AnyResource>(reference: undefined, resource?: TResource): undefined;
-  public static wrap<TResource extends AnyResource>(reference: null, resource?: TResource): null;
   public static wrap<TResource extends AnyResource>(
     reference: IReference<TResource['type']> | undefined,
     resource?: TResource,
   ): Reference<TResource> | undefined;
-  public static wrap<TResource extends AnyResource>(
-    reference: IReference<TResource['type']> | null,
-    resource?: TResource,
-  ): Reference<TResource> | null;
 
   /** Wrap a raw reference.
    *
@@ -69,13 +63,10 @@ export class Reference<TResource extends AnyResource> {
    * @return a wrapped reference.
    */
   public static wrap<TResource extends AnyResource>(
-    reference: IReference<TResource['type']> | undefined | null,
+    reference: IReference<TResource['type']> | undefined,
     resource?: TResource,
-  ): Reference<TResource> | undefined | null {
-    if (reference === undefined || reference === null) {
-      return reference;
-    }
-    return new Reference(reference.id, reference.type, resource);
+  ): Reference<TResource> | undefined {
+    return reference && new Reference(reference.id, reference.type, resource);
   }
 
   // Overloads for wrapAll
@@ -109,7 +100,7 @@ export class Reference<TResource extends AnyResource> {
    * @param references the array of wrapped references.
    * @return a serializable array of references.
    */
-  public static unwrapAll<TResource extends AnyResource>(
+  public static unwrapAll<TIResource extends AnyIResource, TResource extends Resource<TIResource>>(
     references: Array<Reference<TResource>>,
   ): Array<IReference<TResource['type']>> {
     return references.map((reference: Reference<TResource>) => reference.unwrap());

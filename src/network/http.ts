@@ -1,19 +1,26 @@
-import {IData, IDocument} from '../../schema';
-import {IDocumentRequest, IDocumentResponse} from '../broker';
+import {IDocument} from '../schema';
 
-export interface IHttpRequestMiddleware<TReadData, TWriteData> {
-  receive(request: XMLHttpRequest): Promise<TReadData>;
-  send(request: XMLHttpRequest, value?: TWriteData): void;
+export const METHOD = {
+  GET: 'GET',
+  POST: 'POST',
+  PUT: 'PUT',
+  PATCH: 'PATCH',
+  DELETE: 'DELETE',
+};
+
+export interface IHttpRequestMiddleware<TValue> {
+  receive(request: XMLHttpRequest): Promise<[TValue, number]>;
+  send(request: XMLHttpRequest, value?: TValue): void;
 }
 
 type Data = Document | BodyInit | null;
 
-export class DataMiddleware implements IHttpRequestMiddleware<XMLHttpRequest, Data> {
-  public receive(r: XMLHttpRequest): Promise<XMLHttpRequest> {
-    return Promise.resolve(r);
+export class DataMiddleware<TValue> implements IHttpRequestMiddleware<TValue> {
+  public receive(r: XMLHttpRequest): Promise<[TValue, number]> {
+    return Promise.resolve([r.response, r.status]);
   }
-  public send(r: XMLHttpRequest, value?: Data): void {
-    r.send(value);
+  public send(r: XMLHttpRequest, value?: TValue): void {
+    r.send((value as any) as Data);
   }
 }
 
@@ -24,7 +31,7 @@ interface IJsonObject {
 type IJsonArray = Array<IJson>;
 export type IJson = IJsonPrimitive | IJsonObject | IJsonArray;
 
-export class JsonMiddleware implements IHttpRequestMiddleware<[IJson, number], IJson> {
+export class JsonMiddleware implements IHttpRequestMiddleware<IJson> {
   public receive(r: XMLHttpRequest): Promise<[IJson, number]> {
     if (r.responseText.length === 0) {
       return Promise.resolve([null, r.status]);
@@ -46,22 +53,18 @@ export class JsonMiddleware implements IHttpRequestMiddleware<[IJson, number], I
   }
 }
 
-export class DocumentMiddleware implements IHttpRequestMiddleware<IDocumentResponse<any>, IDocument<any>> {
-  public receive(r: XMLHttpRequest): Promise<IDocumentResponse<any>> {
+export class DocumentMiddleware implements IHttpRequestMiddleware<IDocument<any>> {
+  public receive(r: XMLHttpRequest): Promise<[IDocument<any>, number]> {
     if (r.responseText.length === 0) {
-      return Promise.resolve({document: {}, status: r.status, statusText: r.statusText});
+      return Promise.resolve([{data: {}}, r.status]);
     }
-    let document;
+    let data;
     try {
-      document = JSON.parse(r.responseText);
+      data = JSON.parse(r.responseText);
     } catch (e) {
       return Promise.reject(e);
     }
-    return Promise.resolve({
-      document,
-      status: r.status,
-      statusText: r.statusText
-    });
+    return Promise.resolve([data, r.status]);
   }
 
   public send(r: XMLHttpRequest, data?: IDocument<any>): void {
@@ -73,46 +76,40 @@ export class DocumentMiddleware implements IHttpRequestMiddleware<IDocumentRespo
   }
 }
 
-class Get {
-  public static format(key: string, value: string): string {
-    return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-  }
-}
-
-export class HttpRequest<TReadData, TWriteData> {
+export class HttpRequest<TValue = Data, TMiddleware extends IHttpRequestMiddleware<TValue> = DataMiddleware<TValue>> {
   private readonly method: string;
   private readonly url: string;
   private readonly urlParameters: Map<string, string> = new Map();
   private readonly requestHeaders: Map<string, string> = new Map();
-  private readonly middleware: IHttpRequestMiddleware<TReadData, TWriteData>;
+  private readonly middleware: TMiddleware;
 
-  public constructor(method: string, url: string, middleware: IHttpRequestMiddleware<TReadData, TWriteData>) {
+  public constructor(method: string, url: string, middleware: TMiddleware) {
     this.method = method;
     this.url = url;
     this.middleware = middleware;
   }
 
-  public parameter(key: string, value: string): this {
+  public parameter(key: string, value: string): HttpRequest<TValue, TMiddleware> {
     this.urlParameters.set(key, value);
     return this;
   }
 
-  public parameters(parameters: Map<string, string>): this {
+  public parameters(parameters: Map<string, string>): HttpRequest<TValue, TMiddleware> {
     parameters.forEach((value, key) => this.parameter(key, value));
     return this;
   }
 
-  public header(key: string, value: string): this {
+  public header(key: string, value: string): HttpRequest<TValue, TMiddleware> {
     this.requestHeaders.set(key, value);
     return this;
   }
 
-  public headers(headers: Map<string, string>): this {
+  public headers(headers: Map<string, string>): HttpRequest<TValue, TMiddleware> {
     headers.forEach((value, key) => this.header(key, value));
     return this;
   }
 
-  public send(data?: TWriteData): Promise<TReadData> {
+  public send(data?: TValue): Promise<[TValue, number]> {
     return new Promise((resolve, reject) => {
       const r = new XMLHttpRequest();
       r.addEventListener('load', () => this.middleware.receive(r).then(resolve).catch(reject));
@@ -127,18 +124,15 @@ export class HttpRequest<TReadData, TWriteData> {
       return '';
     }
     const parts: Array<string> = [];
-    this.urlParameters.forEach((value: string, key: string) => parts.push(Get.format(key, value)));
+    this.urlParameters.forEach((value, key) => parts.push([key, value].map(encodeURIComponent).join('=')));
     return '?' + parts.join('&');
   }
 }
 
-export class DocumentRequest<TReadData extends IData, TWriteData extends IData | undefined>
-  extends HttpRequest<IDocumentResponse<TReadData>, IDocument<TWriteData>>
-  implements IDocumentRequest<TReadData, TWriteData | undefined>
-{
-  private static MIDDLEWARE: DocumentMiddleware = new DocumentMiddleware();
+const MIDDLEWARE = {document: new DocumentMiddleware()};
 
-  public constructor(method: string, url: string) {
-    super(method, url, DocumentRequest.MIDDLEWARE);
-  }
+export type DocumentHttpRequest = HttpRequest<IDocument<any>, DocumentMiddleware>;
+
+export function request(method: string, url: string): HttpRequest<IDocument<any>, DocumentMiddleware> {
+  return new HttpRequest<IDocument<any>, DocumentMiddleware>(method, url, MIDDLEWARE.document);
 }

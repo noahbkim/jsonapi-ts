@@ -1,5 +1,5 @@
 {
-  "name": "jsonapi-ts",
+  "name": "jsonapi",
   "version": "1.0.0",
   "description": "A client-side library for handling JSON:API models.",
   "scripts": {},
@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/noahbkim/jsonapi-ts#readme",
   "dependencies": {
-    "typescript": "^4.1.3"
+    "typescript": "^3.9.9"
   },
   "devDependencies": {}
 }

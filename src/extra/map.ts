@@ -1,7 +1,5 @@
-import {Document, Reference} from '..';
-import {Cardinality} from '../core/algebra';
-import {AnyResource, Resource} from '../core/resource';
-import {Cache} from '../library/cache';
+import {Document} from '../framework';
+import {AnyResource, Resource, Reference} from '../resource';
 import {IResource} from '../schema';
 
 /** A container for accessing resources by type and ID.
@@ -10,12 +8,10 @@ import {IResource} from '../schema';
  * operations with ergonomic model templating.
  */
 export class ResourceMap {
-  private caches: Map<string, Cache<string, AnyResource>> = new Map();
+  private caches: Map<string, Map<string, AnyResource>> = new Map();
 
-  public static fromDocument<TResource extends AnyResource>(document: Document<TResource, Cardinality>): ResourceMap {
-    const map = new ResourceMap();
-    map.putDocument(document);
-    return map;
+  public static fromDocument(document: Document): ResourceMap {
+    return new ResourceMap().putDocument(document);
   }
 
   /** Put a resource of any type in the cache.
@@ -58,15 +54,8 @@ export class ResourceMap {
   }
 
   /** Put a document in the store, linking resource data. */
-  public putDocument<TResource extends AnyResource>(document: Document<TResource, Cardinality>): this {
-    if (document.included) {
-      this.putAll(document.included);
-    }
-    if (Array.isArray(document.data)) {
-      this.putAll(document.data);
-    } else {
-      this.put(document.data!);
-    }
+  public putDocument<TResource extends AnyResource>(document: Document): this {
+    this.putAll(document.resources());
     return this;
   }
 
@@ -104,14 +93,14 @@ export class ResourceMap {
    * @param type the string resource type.
    * @return a cache, either existing or newly created, for resources.
    */
-  private getOrCreateCache(type: string): Cache<string, AnyResource> {
-    return (
-      this.caches.get(type) ||
-      (() => {
-        const cache = new Cache<string, Resource<IResource<any, any>>>();
-        this.caches.set(type, cache);
-        return cache;
-      })()
-    );
+  private getOrCreateCache(type: string): Map<string, AnyResource> {
+    const existing = this.caches.get(type);
+    if (existing) {
+      return existing;
+    } else {
+      const cache = new Map<string, AnyResource>();
+      this.caches.set(type, cache);
+      return cache;
+    }
   }
 }

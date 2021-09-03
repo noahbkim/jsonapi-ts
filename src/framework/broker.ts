@@ -25,6 +25,6 @@ export interface IDocumentRequest<TReadData extends IData, TWriteData extends ID
 export interface IDocumentBroker {
   request<TReadData extends IData, TWriteData extends IData | undefined = undefined>(
     method: Method,
-    url: string
-  ): DocumentRequest<TReadData, TWriteData>
+    url: string,
+  ): DocumentRequest<TReadData, TWriteData>;
 }

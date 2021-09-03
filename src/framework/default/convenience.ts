@@ -1,14 +1,5 @@
-import {IData, IDocument, IError} from '../../schema';
+import {IData, IDocument} from '../../schema';
 import {IDocumentResponse} from '../broker';
-
-export function logErrors(errors?: Array<IError>): void {
-  if (errors) {
-    for (const error of errors) {
-      console.error(error);
-      // console.error(error.code);  // TODO
-    }
-  }
-}
 
 type PromiseFilter<TData extends IData> = (response: IDocumentResponse<TData>) => Promise<IDocument<TData>>;
 
@@ -19,7 +10,7 @@ type PromiseFilter<TData extends IData> = (response: IDocumentResponse<TData>) =
 export function status<TData extends IData>(expected: number): PromiseFilter<TData> {
   return (response: IDocumentResponse<TData>) => {
     if (response.status !== expected) {
-      logErrors(response.document.errors);
+      console.warn(`expected status ${expected}, got ${response.status}!`);
       return Promise.reject(response.document.errors);
     } else {
       return Promise.resolve(response.document);

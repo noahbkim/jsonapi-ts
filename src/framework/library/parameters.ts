@@ -19,7 +19,7 @@ export class ParameterWrapper {
    * @param field the key to set.
    * @param value the value to associate with the key.
    */
-  public set(field: string, value: string): ParameterWrapper {
+  public set(field: string, value: string): this {
     this.parameters.set(field, value);
     return this;
   }

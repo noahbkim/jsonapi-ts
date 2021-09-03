@@ -43,16 +43,14 @@ export class IncrementalPromise<TEach, TDone> {
 
   private invoke(call: IncrementalPromiseCallback<TEach, TDone>) {
     const promise = call(this.step.bind(this), this.resolve.bind(this), this.reject.bind(this));
-    if (promise && this.resolveValue === none && this.rejectValue === none) {
+    if (this.resolveValue === none && this.rejectValue === none) {
       promise
         .then((recursiveCall) => {
           if (recursiveCall) {
             this.invoke(recursiveCall);
           }
         })
-        .catch((error) => {
-          this.reject(error);
-        });
+        .catch((error) => this.reject(error));
     }
   }
 

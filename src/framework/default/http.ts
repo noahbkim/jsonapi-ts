@@ -60,7 +60,7 @@ export class DocumentMiddleware implements IHttpRequestMiddleware<IDocumentRespo
     return Promise.resolve({
       document,
       status: r.status,
-      statusText: r.statusText
+      statusText: r.statusText,
     });
   }
 
@@ -140,5 +140,13 @@ export class DocumentRequest<TReadData extends IData, TWriteData extends IData |
 
   public constructor(method: string, url: string) {
     super(method, url, DocumentRequest.MIDDLEWARE);
+  }
+}
+
+export class JsonRequest extends HttpRequest<IJson, IJson> {
+  private static MIDDLEWARE: JsonMiddleware = new JsonMiddleware();
+
+  public constructor(method: string, url: string) {
+    super(method, url, JsonRequest.MIDDLEWARE);
   }
 }

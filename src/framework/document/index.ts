@@ -1,19 +1,18 @@
-import {DocumentPagination} from './pagination';
+import {AnyResource, IUpdate, IWriteResourceFromModel, Model, Resource} from '@/jsonapi';
+import {registry} from '@/jsonapi/model/registry';
+
+import {AnyModel, IModelFactory} from '../../model';
 import {AnyIResource, IDocument, IError, IJsonApi, IMeta, IRequiredLinks, IType} from '../../schema';
-import {Model, AnyModel, IWriteResourceFromModel, IModel, IReadResourceFromModel} from '../../model';
-import {Resource} from "@/jsonapi";
+import {DocumentPagination} from './pagination';
 
 export * from './pagination';
 
-/** A wrapper around the JSON API document object.
+/** Base document.
  *
- * The document class is primarily intended to offer interoperability between
- * wrapped resources and documents. Since documents are top-level schema for
- * requests and responses, we want a way to manipulate wrapped resources while
- * still only communicating the underlying JSON API data.
- *
- * @template TModel the wrapped resource type.
- * @template TCardinality whether there are one or many items in the document.
+ * Documents must either contain data or errors. Data may consist of a single
+ * resource or an array of zero or more resources. To address this practically,
+ * there are corresponding document subclasses. This abstract class handles
+ * the properties shared by both.
  */
 export abstract class Document {
   public included?: Array<AnyModel>;
@@ -22,62 +21,84 @@ export abstract class Document {
   public links?: IRequiredLinks;
   public jsonapi?: IJsonApi;
 
+  /** Aggregate all resources in data and included.
+   *
+   * Useful for extracting resources from a document into a resource parent,
+   * but generally not used in business logic.
+   *
+   * @return an array of all contained resources.
+   */
   public abstract resources(): Array<Resource<IType>>;
 
-  protected static bind<TDocument extends Document>(document: TDocument, data: IDocument<any>) {
+  /** Helper function for constructing data-specific documents.
+   *
+   * @param document the document to bind data to.
+   * @param data the raw document data to bind.
+   */
+  protected static bind<TDocument extends Document>(document: TDocument, data: IDocument<any>): void {
     if (data.included !== undefined) {
-      document.included = Model.registry.wrapAll(data.included);
+      document.included = registry.wrapAll(data.included);
     }
     document.errors = data.errors;
     document.meta = data.meta;
     document.links = data.links;
     document.jsonapi = data.jsonapi;
   }
-
-  protected unwrap(): IDocument<any> {
-    let included: Array<AnyIResource> | undefined = undefined;
-    if (this.included !== undefined) {
-      included = this.included.map((model: AnyModel) => model.unwrap());
-    }
-    return {
-      data: undefined,
-      included,
-      errors: this.errors,
-      meta: this.meta,
-      links: this.links,
-      jsonapi: this.jsonapi
-    }
-  }
 }
 
-export class OneDocument<TModel extends AnyModel> extends Document {
-  data?: TModel;
+/** Read-only document with a single resource as data. */
+export class OneReadDocument<TModel extends AnyModel> extends Document {
+  public data?: TModel;
 
   public constructor(data?: TModel) {
     super();
     this.data = data;
   }
 
-  public static wrap<TModel extends AnyModel, TIModel extends IModel<TModel>>(
-    data: IDocument<IReadResourceFromModel<TModel>>,
-    model: TIModel,
-  ): OneDocument<TModel> {
-    const document = new OneDocument<TModel>();
+  /** Wrap deserialized document data as a document.
+   *
+   * @param data the deserialized document to read.
+   * @param modelFactory the model factory used for the data field.
+   * @return a new document.
+   */
+  public static wrap<
+    TType extends IType,
+    TIReadResource extends AnyIResource<TType>,
+    TModel extends Model<TType>,
+    TModelFactory extends IModelFactory<any, any, any>,
+  >(data: IDocument<TIReadResource>, modelFactory: TModelFactory): OneReadDocument<TModel> {
+    const document = new OneReadDocument<TModel>();
     super.bind(document, data);
     if (data.data !== undefined) {
-      document.data = model.wrap(data.data);
+      document.data = modelFactory.read(data.data);
     }
     return document;
   }
 
-  public unwrap(): IDocument<IWriteResourceFromModel<TModel>> {
-    return {
-      ...super.unwrap(),
-      data: this.data?.unwrap() as IWriteResourceFromModel<TModel>,
-    }
+  /** Used for in-place read operations.
+   *
+   * In circumstances where the model being returned already exists in some
+   * capacity on the client side, we don't want to spawn a new instance if
+   * we can simply reread the existing one.
+   *
+   * @param data the deserialized document to read.
+   * @return a new document.
+   */
+  public static wrapWithoutData<
+    TType extends IType,
+    TIReadResource extends AnyIResource<TType>,
+    TModel extends Model<TType>,
+  >(data: IDocument<TIReadResource>): OneReadDocument<TModel> {
+    const document = new OneReadDocument<TModel>();
+    super.bind(document, data);
+    return document;
   }
 
-  public resources(): Array<Resource<IType>> {
+  /** Yield all resources in the document.
+   *
+   * @return an array of all resources.
+   */
+  public resources(): Array<AnyResource> {
     const result = [];
     if (this.data) {
       result.push(this.data);
@@ -89,31 +110,90 @@ export class OneDocument<TModel extends AnyModel> extends Document {
   }
 }
 
-export class ManyDocument<TModel extends AnyModel> extends Document {
-  data?: Array<TModel>;
+/** A one document can only read resources with update.
+ *
+ * This document provides an update and can be used for modifying resource
+ * endpoint functions.
+ */
+export class OneDocument<TModel extends AnyModel & IUpdate<IType, AnyIResource>> extends OneReadDocument<TModel> {
+  public declare included?: Array<AnyModel & IUpdate<IType, AnyIResource>>;
+
+  /** Unwrap the document into a serializable format.
+   *
+   * @return the raw document data.
+   */
+  public unwrap(): IDocument<IWriteResourceFromModel<TModel>> {
+    return {
+      data: this.data?.update() as IWriteResourceFromModel<TModel>,
+      included: this.included?.map((model: AnyModel & IUpdate<IType, AnyIResource>) => model.update()),
+      errors: this.errors,
+      meta: this.meta,
+      links: this.links,
+      jsonapi: this.jsonapi,
+    };
+  }
+}
+
+/** Document with an array of models as data. */
+export class ReadManyDocument<TModel extends AnyModel> extends Document {
+  public data?: Array<TModel>;
 
   public constructor(data?: Array<TModel>) {
     super();
     this.data = data;
   }
 
-  public static wrap<TModel extends AnyModel, TIModel extends IModel<TModel>>(
-    data: IDocument<Array<IReadResourceFromModel<TModel>>>,
-    model: TIModel,
-  ): ManyDocument<TModel> {
-    const document = new ManyDocument<TModel>();
+  /** Wrap document data and contained models.
+   *
+   * The provided model factory is used to deserialize the document's resource
+   * data into corresponding models.
+   *
+   * @param data the deserialized raw document data.
+   * @param modelFactory a model wrapper for the document data.
+   * @return a new many document.
+   */
+  public static wrap<
+    TType extends IType,
+    TIReadResource extends AnyIResource<TType>,
+    TModel extends Model<TType>,
+    TIModel extends IModelFactory<TType, TIReadResource, TModel>,
+  >(data: IDocument<Array<TIReadResource>>, modelFactory: TIModel): ReadManyDocument<TModel> {
+    const document = new ReadManyDocument<TModel>();
     super.bind(document, data);
-    document.data = data.data?.map(model.wrap);
+    document.data = data.data?.map(modelFactory.read);
     return document;
   }
 
-  public unwrap(): IDocument<Array<IWriteResourceFromModel<TModel>>> {
-    return {
-      ...super.unwrap(),
-      data: this.data?.map((data: TModel) => data.unwrap() as IWriteResourceFromModel<TModel>),
+  /** Combine the data and included resources of raw documents.
+   *
+   * Returns a new document. Does not modify any of the provided data.
+   *
+   * @param data an array of deserialized document data.
+   * @param modelFactory wrapper for models in the document.
+   * @return a new many document.
+   */
+  public static combine<
+    TType extends IType,
+    TIReadResource extends AnyIResource<TType>,
+    TModel extends Model<TType>,
+    TIModel extends IModelFactory<TType, TIReadResource, TModel>,
+  >(data: Array<IDocument<Array<TIReadResource>>>, modelFactory: TIModel): ReadManyDocument<TModel> {
+    const document = new ReadManyDocument<TModel>();
+    const combined = data.shift()!;
+    for (const other of data) {
+      combined.data!.push(...other.data!);
+      combined.included?.push(...(other.included ?? []));
     }
+
+    super.bind(document, combined);
+    document.data = combined.data!.map(modelFactory.read);
+    return document;
   }
 
+  /** Aggregate resources from the document.
+   *
+   * @return an array of data and included resources.
+   */
   public resources(): Array<Resource<IType>> {
     const result = [];
     if (this.data) {
@@ -125,34 +205,31 @@ export class ManyDocument<TModel extends AnyModel> extends Document {
     return result;
   }
 
-  /** Merge data and include from another many document into this.
+  /** Generate a pagination from the meta of the document.
    *
-   * We pretty much selectively care about data and included whenever we're
-   * merging, so that's all we'll do.
-   *
-   * Important: this only works for ManyDocuments.
-   *
-   * @param other another document to merge data and includes from.
+   * @return a new document pagination object or undefined.
    */
-  public merge(other: ManyDocument<TModel>): this {
-    if (other.data !== undefined) {
-      if (this.data === undefined) {
-        this.data = other.data;
-      } else {
-        (this.data as Array<TModel>).push(...(other.data as Array<TModel>));
-      }
-    }
-    if (other.included !== undefined) {
-      if (this.included === undefined) {
-        this.included = other.included;
-      } else {
-        this.included.push(...other.included);
-      }
-    }
-    return this;
-  }
-
   public pagination(): DocumentPagination | undefined {
     return DocumentPagination.fromMeta(this.meta);
+  }
+}
+
+/** Many document with update. */
+export class ManyDocument<TModel extends AnyModel & IUpdate<IType, AnyIResource>> extends ReadManyDocument<TModel> {
+  public declare included?: Array<AnyModel & IUpdate<IType, AnyIResource>>;
+
+  /** Return raw document data and deserialized resource data.
+   *
+   * @return a many document with an array of resource data.
+   */
+  public unwrap(): IDocument<Array<IWriteResourceFromModel<TModel>>> {
+    return {
+      data: this.data?.map((data: TModel) => data.update() as IWriteResourceFromModel<TModel>),
+      included: this.included?.map((model: AnyModel & IUpdate<IType, AnyIResource>) => model.update()),
+      errors: this.errors,
+      meta: this.meta,
+      links: this.links,
+      jsonapi: this.jsonapi,
+    };
   }
 }

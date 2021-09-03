@@ -1,6 +1,5 @@
-import {Id, IReference} from '../schema';
+import {Id, IReference, IResource} from '../schema';
 import {AnyResource} from './resource';
-
 
 /** A reference to a resource.
  *
@@ -15,7 +14,7 @@ import {AnyResource} from './resource';
  *
  * @template TResource the resource class this reference points to.
  */
-export class Reference<TResource extends AnyResource> {
+export class Reference<TResource extends AnyResource> implements IReference<TResource['type']> {
   public readonly id: Id;
   public readonly type: TResource['type'];
   public resource: TResource | null = null;
@@ -46,7 +45,7 @@ export class Reference<TResource extends AnyResource> {
     return new Reference<TResource>(id, type);
   }
 
-  // Overloads for wrap
+  // Overloads for read
   public static wrap<TResource extends AnyResource>(
     reference: IReference<TResource['type']>,
     resource?: TResource,
@@ -121,5 +120,9 @@ export class Reference<TResource extends AnyResource> {
    */
   public unwrap(): IReference<TResource['type']> {
     return {id: this.id, type: this.type};
+  }
+
+  public conflate(): IResource<TResource['type']> {
+    return {id: this.id, type: this.type, attributes: undefined, relationships: undefined};
   }
 }

@@ -1,14 +1,18 @@
+import {AnyModel, ManyRelationship, OneOptionalRelationship, OneRelationship} from '@/jsonapi';
+import {IType} from '@/jsonapi/schema';
+
 import {Document} from '../framework';
-import {AnyResource, Resource, Reference} from '../resource';
-import {IResource} from '../schema';
+import {AnyResource, Reference} from '../resource';
+
+type MapCallback<T> = (model: T, map: ResourceMap) => void;
 
 /** A container for accessing resources by type and ID.
  *
  * Essentially a wrapper around a double map. Provides convenient put and get
- * operations with ergonomic model templating.
+ * operations with ergonomic modelFactory templating.
  */
 export class ResourceMap {
-  private caches: Map<string, Map<string, AnyResource>> = new Map();
+  private caches: Map<IType, Map<string, AnyResource>> = new Map();
 
   public static fromDocument(document: Document): ResourceMap {
     return new ResourceMap().putDocument(document);
@@ -23,7 +27,7 @@ export class ResourceMap {
     return this;
   }
 
-  /** Insert a collection of variably-typed resources in the store.
+  /** Insert a collection of variably-typed resources in the parent.
    *
    * For a list of resources of the same type, putAllOfType is more efficient
    * and should be used instead.
@@ -39,7 +43,7 @@ export class ResourceMap {
     return this;
   }
 
-  /** Insert a list of resources of the same type in the store.
+  /** Insert a list of resources of the same type in the parent.
    *
    * @param resources a list of homogeneously-typed resources.
    */
@@ -53,13 +57,13 @@ export class ResourceMap {
     return this;
   }
 
-  /** Put a document in the store, linking resource data. */
-  public putDocument<TResource extends AnyResource>(document: Document): this {
+  /** Put a document in the parent, linking resource data. */
+  public putDocument(document: Document): this {
     this.putAll(document.resources());
     return this;
   }
 
-  /** Get a resource from the store.
+  /** Get a resource from the parent.
    *
    * @template TIResource the type of resource to cast back.
    * @param reference a JSON API reference to the desired resource.
@@ -85,6 +89,48 @@ export class ResourceMap {
       return [];
     } else {
       return Array.from(cache.values()) as Array<TResource>;
+    }
+  }
+
+  public clear(): void {
+    this.caches.clear();
+  }
+
+  public clearType(type: IType): void {
+    this.caches.get(type)?.clear();
+  }
+
+  public relateOne<TRelated extends AnyModel>(
+    relationship: OneRelationship<TRelated>,
+    map?: MapCallback<TRelated>,
+  ): void {
+    relationship.data.resource = this.get<TRelated>(relationship.data)!;
+    if (map !== undefined) {
+      map(relationship.data.resource, this);
+    }
+  }
+
+  public relateOneOptional<TRelated extends AnyModel>(
+    relationship: OneOptionalRelationship<TRelated>,
+    map?: MapCallback<TRelated>,
+  ): void {
+    if (relationship.data !== null) {
+      relationship.data.resource = this.get<TRelated>(relationship.data)!;
+      if (map !== undefined) {
+        map(relationship.data.resource, this);
+      }
+    }
+  }
+
+  public relateMany<TRelated extends AnyModel>(
+    relationship: ManyRelationship<TRelated>,
+    map?: MapCallback<TRelated>,
+  ): void {
+    for (const reference of relationship.data) {
+      reference.resource = this.get<TRelated>(reference)!;
+      if (map !== undefined) {
+        map(reference.resource, this);
+      }
     }
   }
 

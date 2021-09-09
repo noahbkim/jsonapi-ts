@@ -13,7 +13,7 @@ export class DataMiddleware implements IHttpRequestMiddleware<XMLHttpRequest, Da
     return Promise.resolve(r);
   }
   public send(r: XMLHttpRequest, value?: Data): void {
-    r.send(value);
+    r.send(value as any);
   }
 }
 

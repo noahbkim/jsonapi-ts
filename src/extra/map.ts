@@ -1,6 +1,5 @@
-import {AnyModel, ManyRelationship, OneOptionalRelationship, OneRelationship} from '@/jsonapi';
-import {IType} from '@/jsonapi/schema';
-
+import {AnyModel, ManyRelationship, OneOptionalRelationship, OneRelationship} from '../model';
+import {IType} from '../schema';
 import {Document} from '../framework';
 import {AnyResource, Reference} from '../resource';
 
@@ -12,7 +11,7 @@ type MapCallback<T> = (model: T, map: ResourceMap) => void;
  * operations with ergonomic modelFactory templating.
  */
 export class ResourceMap {
-  private caches: Map<IType, Map<string, AnyResource>> = new Map();
+  private caches: Map<IType, Map<string, AnyModel>> = new Map();
 
   public static fromDocument(document: Document): ResourceMap {
     return new ResourceMap().putDocument(document);
@@ -22,7 +21,7 @@ export class ResourceMap {
    *
    * @param resource a resource or resource subclass.
    */
-  public put(resource: AnyResource): this {
+  public put(resource: AnyModel): this {
     this.getOrCreateCache(resource.type).set(resource.id, resource);
     return this;
   }
@@ -34,7 +33,7 @@ export class ResourceMap {
    *
    * @param resources a list of resources.
    */
-  public putAll(resources: Array<AnyResource> | undefined): this {
+  public putAll(resources: Array<AnyModel> | undefined): this {
     if (resources !== undefined) {
       for (const resource of resources) {
         this.put(resource);
@@ -47,7 +46,7 @@ export class ResourceMap {
    *
    * @param resources a list of homogeneously-typed resources.
    */
-  public putAllOfType<TResource extends AnyResource>(resources: Array<TResource>): this {
+  public putAllOfType<TModel extends AnyModel>(resources: Array<TModel>): this {
     if (resources.length > 0) {
       const cache = this.getOrCreateCache(resources[0].type);
       for (const resource of resources) {
@@ -69,26 +68,26 @@ export class ResourceMap {
    * @param reference a JSON API reference to the desired resource.
    * @return the resource if contained, otherwise undefined
    */
-  public get<TResource extends AnyResource>(reference: Reference<TResource>): TResource | undefined {
+  public get<TModel extends AnyModel>(reference: Reference<TModel>): TModel | undefined {
     const cache = this.caches.get(reference.type);
     if (cache === undefined) {
       return undefined;
     }
-    return cache.get(reference.id) as TResource;
+    return cache.get(reference.id) as TModel;
   }
 
   /** Get all stored elements of a given type.
    *
-   * @template TResource the resource signature
+   * @template TModel the resource signature
    * @param type the string resource type.
    * @return a new array containing all stored items of the type.
    */
-  public getAllOfType<TResource extends AnyResource>(type: string): Array<TResource> {
+  public getAllOfType<TModel extends AnyModel>(type: string): Array<TModel> {
     const cache = this.caches.get(type);
     if (cache === undefined) {
       return [];
     } else {
-      return Array.from(cache.values()) as Array<TResource>;
+      return Array.from(cache.values()) as Array<TModel>;
     }
   }
 
@@ -139,12 +138,12 @@ export class ResourceMap {
    * @param type the string resource type.
    * @return a cache, either existing or newly created, for resources.
    */
-  private getOrCreateCache(type: string): Map<string, AnyResource> {
+  private getOrCreateCache(type: string): Map<string, AnyModel> {
     const existing = this.caches.get(type);
     if (existing) {
       return existing;
     } else {
-      const cache = new Map<string, AnyResource>();
+      const cache = new Map<string, AnyModel>();
       this.caches.set(type, cache);
       return cache;
     }

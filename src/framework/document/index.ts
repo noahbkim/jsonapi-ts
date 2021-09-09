@@ -1,7 +1,5 @@
-import {AnyResource, IUpdate, IWriteResourceFromModel, Model, Resource} from '@/jsonapi';
-import {registry} from '@/jsonapi/model/registry';
-
-import {AnyModel, IModelFactory} from '../../model';
+import {AnyResource, Resource} from '../../resource';
+import {Model, AnyModel, IModelFactory, IUpdate, IWriteResourceFromModel, registry} from '../../model';
 import {AnyIResource, IDocument, IError, IJsonApi, IMeta, IRequiredLinks, IType} from '../../schema';
 import {DocumentPagination} from './pagination';
 
